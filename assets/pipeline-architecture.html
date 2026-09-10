@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>通话录音批量处理系统 - 流水线架构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #020617;
+    font-family: 'JetBrains Mono', 'Noto Sans SC', monospace;
+    color: #e2e8f0;
+    padding: 40px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 28px;
+    color: #f8fafc;
+    letter-spacing: 1px;
+  }
+  .header h1 .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: #22d3ee;
+    border-radius: 50%;
+    margin-right: 10px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .header .sub {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .diagram {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .stage-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+  .node {
+    min-width: 148px;
+    max-width: 168px;
+    padding: 14px 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1.5px solid;
+    position: relative;
+  }
+  .node .name { font-size: 12px; font-weight: 700; }
+  .node .sub { font-size: 9px; margin-top: 6px; opacity: 0.75; }
+  .node .tag { font-size: 8px; margin-top: 6px; opacity: 0.6; }
+  .arrow {
+    width: 34px;
+    height: 2px;
+    background: #475569;
+    position: relative;
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+  .arrow::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: -3px;
+    border-left: 7px solid #475569;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .frontend { background: rgba(8, 51, 68, 0.4); border-color: #22d3ee; }
+  .frontend .name { color: #22d3ee; }
+  .backend { background: rgba(6, 78, 59, 0.4); border-color: #34d399; }
+  .backend .name { color: #34d399; }
+  .database { background: rgba(76, 29, 149, 0.4); border-color: #a78bfa; }
+  .database .name { color: #a78bfa; }
+  .external { background: rgba(30, 41, 59, 0.5); border-color: #94a3b8; }
+  .external .name { color: #94a3b8; }
+  .row-label {
+    font-size: 10px;
+    color: #64748b;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 3px;
+  }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #1e293b;
+    font-size: 10px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card h3 {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .card ul { list-style: none; font-size: 10px; color: #94a3b8; line-height: 1.8; }
+  .card ul li::before { content: '• '; color: #475569; }
+  .footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 9px;
+    color: #475569;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="dot"></span>📞 通话录音批量处理系统</h1>
+  <div class="sub">Call Recording Batch Processing Pipeline · v2.2 · MIT License</div>
+</div>
+
+<div class="diagram">
+  <div class="row-label">▸ 转写与归档流水线</div>
+  <div class="stage-row">
+    <div class="node frontend"><div class="name">录音上传</div><div class="sub">飞书云空间</div><div class="tag">INPUT</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">阶段1 盘点</div><div class="sub">stage1_inventory.py</div><div class="tag">文件清点</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">阶段2 批量转写</div><div class="sub">stage2_batch_pipeline.py</div><div class="tag">并发5 · 防限流</div></div>
+    <div class="arrow"></div>
+    <div class="node database"><div class="name">飞书妙记</div><div class="sub">自动语音转写</div><div class="tag">ASR</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">阶段4 导出</div><div class="sub">stage4_export_docs.py</div><div class="tag">转写内容</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">阶段5~8 合并</div><div class="sub">stage5_8_merge_docs.py</div><div class="tag">按联系人分组</div></div>
+  </div>
+
+  <div class="row-label">▸ 发布与深度分析</div>
+  <div class="stage-row">
+    <div class="node backend"><div class="name">批量上传飞书</div><div class="sub">batch_upload_docs.py</div><div class="tag">分段追加</div></div>
+    <div class="arrow"></div>
+    <div class="node external"><div class="name">飞书云文档</div><div class="sub">合并文档归档</div><div class="tag">1200+ 文档</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">深度分析 L1</div><div class="sub">deep_analysis_v2.py</div><div class="tag">AI 摘要层</div></div>
+    <div class="arrow"></div>
+    <div class="node backend"><div class="name">深度分析 L2</div><div class="sub">deep_analysis_layer2.py</div><div class="tag">互动模式层</div></div>
+    <div class="arrow"></div>
+    <div class="node database"><div class="name">人物画像</div><div class="sub">风格 · 意图 · 风险</div><div class="tag">复盘建议</div></div>
+    <div class="arrow"></div>
+    <div class="node database"><div class="name">知识沉淀</div><div class="sub">多维表格 · 索引</div><div class="tag">5表+仪表盘</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(8,51,68,0.4);border-color:#22d3ee"></div> 输入 / 前端</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(6,78,59,0.4);border-color:#34d399"></div> 流水线脚本</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(76,29,149,0.4);border-color:#a78bfa"></div> 数据 / 分析成果</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(30,41,59,0.5);border-color:#94a3b8"></div> 外部平台</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <h3><div class="card-dot" style="background:#22d3ee"></div> 规模实测</h3>
+    <ul>
+      <li>8000+ 条录音全量处理</li>
+      <li>7900+ 条成功转写</li>
+      <li>1200+ 份联系人合并文档</li>
+      <li>转写速率 900-1200 条/小时</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><div class="card-dot" style="background:#34d399"></div> 工程保障</h3>
+    <ul>
+      <li>1500 条列表上限循环分批</li>
+      <li>并发5 + 随机间隔 + 批次休息</li>
+      <li>大文档分段创建 + 追加</li>
+      <li>四重监控 + token 失效自动重启</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><div class="card-dot" style="background:#a78bfa"></div> 五层分析</h3>
+    <ul>
+      <li>数据层：转写 / 合并 / 归档</li>
+      <li>画像层：沟通风格 / 行为模式</li>
+      <li>风险层：潜台词 / 一致性检测</li>
+      <li>复盘层：表达缺陷 / 成长追踪</li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">Call Recording Analysis System · 真实业务场景沉淀 · 个人数据已脱敏</div>
+
+</body>
+</html>
